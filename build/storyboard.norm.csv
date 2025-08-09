@@ -1,0 +1,7 @@
+filename,start,duration,cue
+scene01.png,0,4,1
+scene02.png,4,7,2
+scene03.png,11,15,3
+scene04.png,26,15,4
+scene05.png,41,10,5
+scene06.png,51,9,6

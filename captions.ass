@@ -1,0 +1,20 @@
+[Script Info]
+Title=TikTok Captions
+ScriptType=v4.00+
+PlayResX=1080
+PlayResY=1920
+WrapStyle=2
+ScaledBorderAndShadow=yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Caption,Montserrat SemiBold,64,&H00FFFFFF,&H00000000,&H96000000,&H64000000,-1,0,0,0,100,100,0,0,1,6,0,2,80,80,120,0
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.80,Caption,,0,0,0,,Yes… I made money while I was sleeping.\NHere's the beginner-safe way to earn with crypto.
+Dialogue: 0,0:00:03.80,0:00:11.00,Caption,,0,0,0,,Crypto runs 24/7. Use systems that work while you rest: staking, yield, and long-term holding.
+Dialogue: 0,0:00:11.00,0:00:25.00,Caption,,0,0,0,,Staking: lock ETH or SOL with trusted validators to earn rewards.\NStart small; prices still move.
+Dialogue: 0,0:00:25.00,0:00:41.00,Caption,,0,0,0,,Yield: lend or provide liquidity in audited protocols.\NWatch fees and impermanent loss.
+Dialogue: 0,0:00:41.00,0:00:51.00,Caption,,0,0,0,,HODL: DCA into BTC, ETH, SOL and let time work.\NNo late-night chart chasing.
+Dialogue: 0,0:00:51.00,0:00:60.00,Caption,,0,0,0,,Education, not financial advice.\NFollow for more clear crypto breakdowns.
