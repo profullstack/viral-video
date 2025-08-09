@@ -123,9 +123,7 @@ Total seconds should sum to ~${cfg.VIDEO_SEC}. Keep jargon minimal.`;
     messages: [
       { role: "system", content: "Return only valid JSON. No commentary." },
       { role: "user", content: prompt },
-    ],
-    temperature: 0.6,
-    response_format: { type: "json_object" },
+    ],response_format: { type: "json_object" },
   });
 
   let data;
@@ -181,7 +179,9 @@ async function generateImage({ promptText, outPng, client, cfg, dryRun, imageSty
   const style = imageStyleBlock(imageStyle);
   const img = await client.images.generate({
     model: cfg.IMAGE_MODEL,
-    size: `${WIDTH}x${HEIGHT}`,
+    // OpenAI Images API supports: 1024x1024, 1024x1536 (portrait), 1536x1024 (landscape), or "auto"
+    // We generate portrait at 1024x1536, then ffmpeg scales to 1080x1920 during render.
+    size: "1024x1536",
     prompt: `${promptText}\nStyle: ${style}; vertical 1080x1920, clean composition, minimal text.`,
     quality: "high",
   });
@@ -491,7 +491,7 @@ export async function run(topic, options = {}) {
   const client = dryRun ? null : new OpenAI({ apiKey: OPENAI_API_KEY });
 
   const slug = slugify(topic);
-  const outDir = path.join(process.cwd(), `video-${slug}`);
+  const outDir = path.join(process.cwd(), "build", slug);
   const scenesDir = path.join(outDir, "scenes");
   const audioDir = path.join(outDir, "audio");
   await ensureDir(scenesDir);

@@ -110,19 +110,26 @@ async function prompt(question, { mask = false } = {}) {
   if (!process.stdin.isTTY) return null;
   return new Promise((resolve) => {
     process.stdout.write(question);
+
+    const cleanup = (onData) => {
+      try { if (onData) process.stdin.off('data', onData); } catch {}
+      try { if (process.stdin.setRawMode) process.stdin.setRawMode(false); } catch {}
+      try { process.stdin.pause(); } catch {}
+    };
+
     if (mask && process.stdin.setRawMode) {
       let input = '';
       const onData = (buf) => {
         const s = buf.toString('utf8');
         if (s === '\n' || s === '\r') {
           process.stdout.write('\n');
-          process.stdin.off('data', onData);
-          process.stdin.setRawMode(false);
+          cleanup(onData);
           resolve(input);
           return;
         }
         if (s === '\u0003') { // Ctrl+C
           process.stdout.write('\n');
+          cleanup(onData);
           process.exit(1);
         }
         input += s;
@@ -132,10 +139,10 @@ async function prompt(question, { mask = false } = {}) {
       process.stdin.resume();
       process.stdin.on('data', onData);
     } else {
-      const chunks = [];
+      process.stdin.resume();
       process.stdin.once('data', (d) => {
-        chunks.push(d);
-        const s = Buffer.concat(chunks).toString('utf8').trim();
+        const s = Buffer.isBuffer(d) ? d.toString('utf8').trim() : String(d || '').trim();
+        cleanup();
         resolve(s);
       });
     }

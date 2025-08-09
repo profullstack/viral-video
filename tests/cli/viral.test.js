@@ -36,7 +36,7 @@ describe('viral CLI', () => {
     const topic = 'Flag Test';
     const res = runCLI(['--topic', topic, '--female', '--realistic', '--dry-run']);
     expect(res.status).to.equal(0, `stderr: ${res.stderr || ''}`);
-    const outDir = path.join(process.cwd(), 'video-flag-test');
+    const outDir = path.join(process.cwd(), 'build', 'flag-test');
     const scriptPath = path.join(outDir, 'script.json');
     // Allow some time for filesystem sync on slower environments
     expect(fs.existsSync(scriptPath)).to.equal(true, 'script.json should exist in output dir');
