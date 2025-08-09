@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 
 const BIN = path.join(process.cwd(), 'bin', 'viral.js');
 
@@ -43,5 +44,24 @@ describe('viral CLI', () => {
     expect(String(data.ttsStyle || '')).to.match(/female/i);
     // cleanup
     try { fs.rmSync(outDir, { recursive: true, force: true }); } catch {}
+  });
+
+  it('setup persists ELEVENLABS_API_KEY alongside OPENAI_API_KEY', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'viral-config-'));
+    const res = runCLI(
+      ['setup', '--openai-key', 'sk-test-123', '--elevenlabs-key', 'el-test-123'],
+      { env: { XDG_CONFIG_HOME: tmp } }
+    );
+    expect(res.status).to.equal(0, `stderr: ${res.stderr || ''}`);
+
+    const cfgPath = path.join(tmp, 'viral-video', 'config.json');
+    expect(fs.existsSync(cfgPath)).to.equal(true, 'config.json should be written');
+
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    expect(cfg.OPENAI_API_KEY).to.equal('sk-test-123');
+    expect(cfg.ELEVENLABS_API_KEY).to.equal('el-test-123');
+
+    // cleanup
+    try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {}
   });
 });

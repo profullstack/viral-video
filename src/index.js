@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import os from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import OpenAI from "openai";
@@ -13,13 +14,33 @@ const HEIGHT = 1920;
 const FPS = 30;
 
 const DEFAULTS = {
-  TEXT_MODEL: process.env.TEXT_MODEL || "gpt-5",
-  IMAGE_MODEL: process.env.IMAGE_MODEL || "gpt-image-1",
-  TTS_MODEL: process.env.TTS_MODEL || "gpt-4o-mini-tts",
-  TTS_VOICE: process.env.TTS_VOICE || "alloy",
-  VIDEO_SEC: parseInt(process.env.VIDEO_SEC || "60", 10),
-  SCENES_COUNT: parseInt(process.env.SCENES_COUNT || "6", 10),
+  TEXT_MODEL: "gpt-5",
+  IMAGE_MODEL: "gpt-image-1",
+  TTS_MODEL: "gpt-4o-mini-tts",
+  TTS_VOICE: "alloy",
+  VIDEO_SEC: 60,
+  SCENES_COUNT: 6,
 };
+
+// Load user config from ~/.config/viral-video/config.json (or XDG_CONFIG_HOME)
+function configPaths() {
+  const home = os.homedir();
+  const cfgRoot = process.env.XDG_CONFIG_HOME || path.join(home, ".config");
+  const dir = path.join(cfgRoot, "viral-video");
+  const file = path.join(dir, "config.json");
+  return { dir, file };
+}
+
+export async function loadUserConfig() {
+  const { file } = configPaths();
+  try {
+    const raw = await fs.readFile(file, "utf8");
+    const json = JSON.parse(raw);
+    return json && typeof json === "object" ? json : {};
+  } catch {
+    return {};
+  }
+}
 
 function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -440,7 +461,20 @@ export async function run(topic, options = {}) {
   if (!topic || typeof topic !== "string") {
     throw new Error('Missing required "topic"');
   }
-  const cfg = { ...DEFAULTS };
+
+  const userCfg = await loadUserConfig();
+
+  // Precedence: env > user config > defaults
+  const cfg = {
+    TEXT_MODEL: process.env.TEXT_MODEL || userCfg.TEXT_MODEL || DEFAULTS.TEXT_MODEL,
+    IMAGE_MODEL: process.env.IMAGE_MODEL || userCfg.IMAGE_MODEL || DEFAULTS.IMAGE_MODEL,
+    TTS_MODEL: process.env.TTS_MODEL || userCfg.TTS_MODEL || DEFAULTS.TTS_MODEL,
+    TTS_VOICE: process.env.TTS_VOICE || userCfg.TTS_VOICE || DEFAULTS.TTS_VOICE,
+    VIDEO_SEC: parseInt(process.env.VIDEO_SEC || userCfg.VIDEO_SEC || DEFAULTS.VIDEO_SEC, 10),
+    SCENES_COUNT: parseInt(process.env.SCENES_COUNT || userCfg.SCENES_COUNT || DEFAULTS.SCENES_COUNT, 10),
+    ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY || userCfg.ELEVENLABS_API_KEY,
+  };
+
   const dryRun = options.dryRun === true;
 
   // Gender -> voice mapping (flags override env/default)
@@ -450,9 +484,9 @@ export async function run(topic, options = {}) {
   // Image style selection (default cartoon)
   const imageStyle = options.style || "cartoon";
 
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || userCfg.OPENAI_API_KEY || "";
   if (!OPENAI_API_KEY && !dryRun) {
-    throw new Error("Missing OPENAI_API_KEY env var.");
+    throw new Error("Missing OPENAI_API_KEY. Set environment variable or run 'viral setup'.");
   }
   const client = dryRun ? null : new OpenAI({ apiKey: OPENAI_API_KEY });
 

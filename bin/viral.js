@@ -12,14 +12,15 @@
 //   --cartoon | --realistic | --ai-generated   Image style (default: cartoon)
 //   --dry-run                        Skip external APIs (OpenAI) and ffmpeg; validate flow only
 //
-// Flags for "setup" (non-interactive):
-//   --openai-key KEY
-//   --text-model NAME
-//   --image-model NAME
-//   --tts-model NAME
-//   --voice NAME
-//   --video-sec N
-//   --scenes-count N
+ // Flags for "setup" (non-interactive):
+ //   --openai-key KEY
+ //   --elevenlabs-key KEY
+ //   --text-model NAME
+ //   --image-model NAME
+ //   --tts-model NAME
+ //   --voice NAME
+ //   --video-sec N
+ //   --scenes-count N
 //
 // Env precedence: environment variables override config; config overrides defaults.
 
@@ -85,6 +86,7 @@ Create options:
 
 Setup options (can be used non-interactively):
   --openai-key KEY
+  --elevenlabs-key KEY
   --text-model NAME
   --image-model NAME
   --tts-model NAME
@@ -93,11 +95,11 @@ Setup options (can be used non-interactively):
   --scenes-count N
 
 Environment variables override config values:
-  OPENAI_API_KEY, TEXT_MODEL, IMAGE_MODEL, TTS_MODEL, TTS_VOICE, VIDEO_SEC, SCENES_COUNT
+  OPENAI_API_KEY, ELEVENLABS_API_KEY, TEXT_MODEL, IMAGE_MODEL, TTS_MODEL, TTS_VOICE, VIDEO_SEC, SCENES_COUNT
 
 Examples:
   viral setup
-  viral setup --openai-key sk-... --voice luna --video-sec 60
+  viral setup --openai-key sk-... --elevenlabs-key el-... --voice luna --video-sec 60
   viral create --topic "Dollar-cost averaging" --female --realistic
   DRY_RUN=1 viral create --topic "SEC Bitcoin ETF timeline" --ai-generated
 `);
@@ -149,6 +151,13 @@ async function setupCommand(args) {
     OPENAI_API_KEY = await prompt('Enter OPENAI_API_KEY: ', { mask: true });
   }
 
+  // Optional: ElevenLabs key (interactive prompt is optional)
+  let ELEVENLABS_API_KEY = args['elevenlabs-key'];
+  if (!ELEVENLABS_API_KEY && process.stdin.isTTY) {
+    const entered = await prompt('Enter ELEVENLABS_API_KEY (optional, press Enter to skip): ', { mask: true });
+    ELEVENLABS_API_KEY = (entered || '').trim();
+  }
+
   // Optional defaults
   const defaults = {
     TEXT_MODEL: args['text-model'],
@@ -168,6 +177,10 @@ async function setupCommand(args) {
     OPENAI_API_KEY: OPENAI_API_KEY.trim(),
     ...Object.fromEntries(Object.entries(defaults).filter(([, v]) => v !== undefined && v !== '')),
   };
+
+  if (ELEVENLABS_API_KEY && ELEVENLABS_API_KEY.trim() !== '') {
+    cfg.ELEVENLABS_API_KEY = ELEVENLABS_API_KEY.trim();
+  }
 
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(file, JSON.stringify(cfg, null, 2), { encoding: 'utf8', mode: 0o600 });
