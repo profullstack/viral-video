@@ -1,2 +1,6 @@
 file '/home/ettinger/Desktop/videos/tiktok_crypto_kit_v4/build/segs/scene01.mp4'
 file '/home/ettinger/Desktop/videos/tiktok_crypto_kit_v4/build/segs/scene02.mp4'
+file '/home/ettinger/Desktop/videos/tiktok_crypto_kit_v4/build/segs/scene03.mp4'
+file '/home/ettinger/Desktop/videos/tiktok_crypto_kit_v4/build/segs/scene04.mp4'
+file '/home/ettinger/Desktop/videos/tiktok_crypto_kit_v4/build/segs/scene05.mp4'
+file '/home/ettinger/Desktop/videos/tiktok_crypto_kit_v4/build/segs/scene06.mp4'

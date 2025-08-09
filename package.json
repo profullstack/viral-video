@@ -1,0 +1,42 @@
+{
+  "name": "viral-video-kit",
+  "version": "0.1.0",
+  "description": "CLI to generate 60s vertical video kits and optionally render MP4 using ffmpeg",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "viral": "./bin/viral.js"
+  },
+  "scripts": {
+    "start": "node bin/viral.js",
+    "viral": "node bin/viral.js",
+    "test": "mocha tests/**/*.test.js --timeout 30000",
+    "test:watch": "mocha tests/**/*.test.js --watch --timeout 30000",
+    "lint": "eslint src/ bin/ tests/",
+    "lint:fix": "eslint src/ bin/ tests/ --fix",
+    "format": "prettier --write src/ bin/ tests/",
+    "format:check": "prettier --check src/ bin/ tests/"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "dependencies": {
+    "openai": "^5.8.2"
+  },
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "eslint": "^8.57.0",
+    "mocha": "^10.2.0",
+    "prettier": "^3.1.1"
+  },
+  "keywords": [
+    "video",
+    "tiktok",
+    "shorts",
+    "ffmpeg",
+    "openai",
+    "cli"
+  ],
+  "license": "MIT"
+}
