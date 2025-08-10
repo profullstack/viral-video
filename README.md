@@ -1,6 +1,16 @@
 
 # Viral Video Kit • 60‑sec Vertical Videos
 
+<!-- BADGES:START -->
+<p align="left">
+  <a href="./package.json"><img alt="version" src="https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge"></a>
+  <a href="#license"><img alt="license" src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge"></a>
+  <a href="./package.json"><img alt="node" src="https://img.shields.io/badge/node-%3E%3D20.0.0-339933?logo=node.js&amp;logoColor=white&amp;style=for-the-badge"></a>
+  <a href="https://pnpm.io/"><img alt="pnpm" src="https://img.shields.io/badge/pnpm-9%2B-F69220?logo=pnpm&amp;logoColor=white&amp;style=for-the-badge"></a>
+  <a href="https://mochajs.org/"><img alt="tests" src="https://img.shields.io/badge/tests-Mocha-8D6748?logo=mocha&amp;logoColor=white&amp;style=for-the-badge"></a>
+  <a href="https://nodejs.org/api/esm.html"><img alt="esm" src="https://img.shields.io/badge/ESM-Enabled-000000?style=for-the-badge"></a>
+</p>
+<!-- BADGES:END -->
 Generate a complete short‑video kit from a topic: script, scene images, captions, voiceover, and an optional rendered MP4. Built for Node.js 20+ using modern ESM.
 
 Core files:
