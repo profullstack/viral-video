@@ -1,6 +1,6 @@
 {
   "name": "@profullstack/viral-video",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI to generate 60s vertical video kits and optionally render MP4 using ffmpeg",
   "type": "module",
   "main": "src/index.js",
