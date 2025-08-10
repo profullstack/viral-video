@@ -1,9 +1,11 @@
 
-# Viral Video Kit • 60‑sec Vertical Videos
+# @profullstack/viral-video
+
+Generate 60‑sec Viral Video Kits
 
 <!-- BADGES:START -->
 <p align="left">
-  <a href="./package.json"><img alt="version" src="https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge"></a>
+  <a href="https://www.npmjs.com/package/@profullstack/viral-video"><img alt="npm version" src="https://img.shields.io/npm/v/%40profullstack%2Fviral-video?style=for-the-badge"></a>
   <a href="#license"><img alt="license" src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge"></a>
   <a href="./package.json"><img alt="node" src="https://img.shields.io/badge/node-%3E%3D20.0.0-339933?logo=node.js&amp;logoColor=white&amp;style=for-the-badge"></a>
   <a href="https://pnpm.io/"><img alt="pnpm" src="https://img.shields.io/badge/pnpm-9%2B-F69220?logo=pnpm&amp;logoColor=white&amp;style=for-the-badge"></a>
@@ -34,12 +36,16 @@ Requirements
 Install
 
 ```bash
-pnpm install
+pnpm add -D @profullstack/viral-video
+# or run without installing:
+pnpm dlx @profullstack/viral-video viral --help
 ```
 
 Optionally link CLI globally:
 
 ```bash
+pnpm add -g @profullstack/viral-video
+# or from a local checkout:
 pnpm link --global
 # then you can run: viral ...
 ```
