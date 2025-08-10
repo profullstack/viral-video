@@ -63,13 +63,22 @@ Flags
 What gets generated
 
 Inside build/your-topic/:
-- scenes/sceneXX.png: scene frames (generated at 1024×1536, upscaled to 1080×1920 on render)
-- audio/voiceover.mp3: synthesized voiceover
-- captions.ass: styled captions (ASS)
-- storyboard.csv: filename,start,duration,cue for render
+- vertical/
+  - scenes/sceneXX.png: portrait frames (generated at 1024×1536, upscaled to 1080×1920 on render)
+  - audio/voiceover.mp3 (copied)
+  - captions.ass
+  - storyboard.csv
+  - build/: intermediate segments and rendered artifacts
+  - output.mp4: final portrait video (when ffmpeg available)
+- horizontal/
+  - scenes/sceneXX.png: landscape frames (generated at 1536×1024, upscaled to 1920×1080 on render)
+  - audio/voiceover.mp3 (copied)
+  - captions.ass
+  - storyboard.csv
+  - build/: intermediate segments and rendered artifacts
+  - output.mp4: final landscape video (when ffmpeg available)
+- audio/voiceover.mp3: root voiceover source
 - README.md: per‑video instructions
-- build/: intermediate segments and rendered artifacts
-- output.mp4: final muxed video (when ffmpeg available)
 
 Rendering details
 

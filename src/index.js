@@ -484,6 +484,29 @@ export async function run(topic, options = {}) {
   // Image style selection (default cartoon)
   const imageStyle = options.style || "cartoon";
 
+  // Progress setup
+  const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+  const orientations = [
+    { name: "vertical", WIDTH: 1080, HEIGHT: 1920 },
+    { name: "horizontal", WIDTH: 1920, HEIGHT: 1080 },
+  ];
+  const ffmpegAvailable = !dryRun && (await hasFfmpeg());
+  let total = 0;
+  total += 1; // script
+  total += 1; // tts
+  total += 3; // root files: script.json, voiceover.txt, README.md
+  for (const o of orientations) {
+    total += cfg.SCENES_COUNT; // images
+    total += 1; // captions
+    total += 1; // storyboard
+    if (ffmpegAvailable) total += 1; // render
+  }
+  let current = 0;
+  const tick = (message) => {
+    current++;
+    onProgress && onProgress({ current, total, message });
+  };
+
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY || userCfg.OPENAI_API_KEY || "";
   if (!OPENAI_API_KEY && !dryRun) {
     throw new Error("Missing OPENAI_API_KEY. Set environment variable or run 'viral setup'.");
@@ -492,12 +515,11 @@ export async function run(topic, options = {}) {
 
   const slug = slugify(topic);
   const outDir = path.join(process.cwd(), "build", slug);
-  const scenesDir = path.join(outDir, "scenes");
   const audioDir = path.join(outDir, "audio");
-  await ensureDir(scenesDir);
   await ensureDir(audioDir);
 
   const plan = await generateScript({ topic, client, cfg, dryRun });
+  tick("Generated script");
 
   // Override ttsStyle in saved metadata when gender flag provided
   if (options.gender) {
@@ -506,47 +528,85 @@ export async function run(topic, options = {}) {
 
   const voText = [plan.hook, ...plan.sections.map((s) => s.text), plan.disclaimer].filter(Boolean).join("\n");
   await writeJSON(path.join(outDir, "script.json"), plan);
+  tick("Wrote script.json");
   await fs.writeFile(path.join(outDir, "voiceover.txt"), voText, "utf8");
+  tick("Wrote voiceover.txt");
 
   const perScene = Math.round(cfg.VIDEO_SEC / cfg.SCENES_COUNT);
-  const sceneFiles = [];
-  for (let i = 0; i < cfg.SCENES_COUNT; i++) {
-    const prompt =
-      plan.imagePrompts[i] ||
-      `${topic}, ${imageStyle === "realistic" ? "photorealistic" : imageStyle === "ai-generated" ? "AI-generated" : "stylized cartoon"} vertical frame, 1080x1920.`;
-    const name = `scene${String(i + 1).padStart(2, "0")}.png`;
-    const outPng = path.join(scenesDir, name);
-    await generateImage({ promptText: prompt, outPng, client, cfg, dryRun, imageStyle });
-    sceneFiles.push(outPng);
-  }
 
-  await synthesizeTTS({ text: voText, outMp3: path.join(audioDir, "voiceover.mp3"), client, cfg, dryRun });
+  // Synthesize TTS once at the root (reused for both orientations)
+  await synthesizeTTS({
+    text: voText,
+    outMp3: path.join(audioDir, "voiceover.mp3"),
+    client,
+    cfg,
+    dryRun,
+  });
+  tick("Synthesized voiceover");
 
-  const cues = splitForCaptions(voText, cfg.VIDEO_SEC);
-  const assText = toAss(cues);
-  await fs.writeFile(path.join(outDir, "captions.ass"), assText, "utf8");
-  const storyboard = toStoryboard(sceneFiles, perScene);
-  await fs.writeFile(path.join(outDir, "storyboard.csv"), storyboard, "utf8");
-
+  // Write a per-topic README at the root describing both outputs
   const readme = `# Video kit for: ${topic}
-- Scenes: ${cfg.SCENES_COUNT} PNGs in scenes/
-- Voiceover: audio/voiceover.mp3 (voice: ${cfg.TTS_VOICE})
-- Captions: captions.ass
-- Storyboard: storyboard.csv
+- Orientations: vertical (1080x1920) and horizontal (1920x1080)
+- Scenes per orientation: ${cfg.SCENES_COUNT} PNGs in <orientation>/scenes/
+- Voiceover: audio/voiceover.mp3 (root), copied into each <orientation>/audio/
+- Captions: <orientation>/captions.ass
+- Storyboard: <orientation>/storyboard.csv
 - Duration: ~${cfg.VIDEO_SEC}s, ${perScene}s per scene
 - Image style: ${imageStyle}
 
 ## Render
-If ffmpeg is installed, this CLI can render output.mp4 automatically.
+If ffmpeg is installed, this CLI renders <orientation>/output.mp4 per orientation.
 - macOS:  brew install ffmpeg
 - Ubuntu: sudo apt-get update && sudo apt-get install -y ffmpeg
 `;
   await fs.writeFile(path.join(outDir, "README.md"), readme, "utf8");
+  tick("Wrote per-topic README");
 
-  if (!dryRun && (await hasFfmpeg())) {
-    await renderVideo(outDir, perScene);
-  } else if (!dryRun) {
-    console.log("⚠️ ffmpeg not found. Assets are ready in:", outDir);
+  // Prepare shared caption cues once
+  const cues = splitForCaptions(voText, cfg.VIDEO_SEC);
+
+  for (const o of orientations) {
+    const ocfg = { ...cfg, WIDTH: o.WIDTH, HEIGHT: o.HEIGHT };
+
+    const oDir = path.join(outDir, o.name);
+    const scenesDir = path.join(oDir, "scenes");
+    const oAudioDir = path.join(oDir, "audio");
+    await ensureDir(scenesDir);
+    await ensureDir(oAudioDir);
+
+    // Copy synthesized VO (and optional BG music) into each orientation folder
+    try {
+      await fs.copyFile(path.join(audioDir, "voiceover.mp3"), path.join(oAudioDir, "voiceover.mp3"));
+    } catch {}
+    try {
+      await fs.copyFile(path.join(audioDir, "music.mp3"), path.join(oAudioDir, "music.mp3"));
+    } catch {}
+
+    const sceneFiles = [];
+    for (let i = 0; i < cfg.SCENES_COUNT; i++) {
+      const prompt =
+        plan.imagePrompts[i] ||
+        `${topic}, ${imageStyle === "realistic" ? "photorealistic" : imageStyle === "ai-generated" ? "AI-generated" : "stylized cartoon"} ${o.name} frame, ${ocfg.WIDTH}x${ocfg.HEIGHT}.`;
+      const name = `scene${String(i + 1).padStart(2, "0")}.png`;
+      const outPng = path.join(scenesDir, name);
+      await generateImage({ promptText: prompt, outPng, client, cfg: ocfg, dryRun, imageStyle });
+      sceneFiles.push(outPng);
+      tick(`Generated image ${i + 1}/${cfg.SCENES_COUNT} (${o.name})`);
+    }
+
+    const assText = toAss(cues, ocfg);
+    await fs.writeFile(path.join(oDir, "captions.ass"), assText, "utf8");
+    tick(`Wrote captions (${o.name})`);
+    const storyboard = toStoryboard(sceneFiles, perScene);
+    await fs.writeFile(path.join(oDir, "storyboard.csv"), storyboard, "utf8");
+    tick(`Wrote storyboard (${o.name})`);
+
+    if (ffmpegAvailable) {
+      await renderVideo(oDir, perScene, ocfg);
+      tick(`Rendered video (${o.name})`);
+    } else if (!dryRun) {
+      console.log(`⚠️ ffmpeg not found. Assets are ready in: ${oDir}`);
+    }
   }
 
   return outDir;

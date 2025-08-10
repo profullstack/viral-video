@@ -62,6 +62,27 @@ function pickStyle(argv) {
   return style;
 }
 
+function createProgressRenderer() {
+  let lastLen = 0;
+  const isTTY = process.stderr.isTTY;
+  const cols = () => process.stderr.columns || 80;
+  return ({ current, total, message }) => {
+    const width = Math.max(20, Math.min(60, cols() - 20));
+    const ratio = total ? current / total : 0;
+    const filled = Math.max(0, Math.min(width, Math.round(ratio * width)));
+    const bar = '[' + '='.repeat(filled) + ' '.repeat(width - filled) + ']';
+    const pct = String(Math.round(ratio * 100)).padStart(3, ' ');
+    const text = `${bar} ${pct}% ${message || ''}`;
+    if (isTTY) {
+      const line = text.slice(0, cols());
+      process.stderr.write('\r' + line + ' '.repeat(Math.max(0, lastLen - line.length)));
+      lastLen = line.length;
+    } else {
+      console.error(`${pct}% ${message || ''}`);
+    }
+  };
+}
+
 function configPaths() {
   const home = os.homedir();
   const cfgRoot = process.env.XDG_CONFIG_HOME || path.join(home, '.config');
@@ -76,13 +97,15 @@ function usage(exitCode = 1) {
 
 Commands:
   setup                           Configure API keys and defaults (writes ~/.config/viral-video/config.json)
-  create --topic "..."            Generate a 60s vertical video kit
+  create --topic "..."            Generate a 60s video kit (vertical + horizontal)
 
 Create options:
   --topic "..."                   Topic for the 60s video (required)
   --male | --female               TTS voice gender override
   --cartoon | --realistic | --ai-generated   Image style (default: cartoon)
   --dry-run                       Skip external APIs and ffmpeg; validate flow only
+
+Note: Generates assets for BOTH vertical (1080x1920) and horizontal (1920x1080).
 
 Setup options (can be used non-interactively):
   --openai-key KEY
@@ -205,9 +228,11 @@ async function createCommand(argv, args) {
   const dryRun = args['dry-run'] === true || process.env.DRY_RUN === '1' || process.env.DRY_RUN === 'true';
   const gender = pickGender(argv);
   const style = pickStyle(argv);
+  const onProgress = createProgressRenderer();
 
   try {
-    const outDir = await run(args.topic, { dryRun, gender, style });
+    const outDir = await run(args.topic, { dryRun, gender, style, onProgress });
+    if (process.stderr.isTTY) process.stderr.write('\n');
     if (dryRun) {
       console.log(`DRY_RUN complete. Prepared (or validated) directory: ${outDir}`);
     }
