@@ -4,6 +4,7 @@ import os from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import OpenAI from "openai";
+import { createC0mpute } from "./c0mpute.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +66,22 @@ function imageStyleBlock(imageStyle) {
 }
 
 // ---------- Generators ----------
-async function generateScript({ topic, client, cfg, dryRun }) {
+/** Default whole-call c0mpute timeout for the script (15 min; c0mpute runs at a few tokens a second). */
+export const C0MPUTE_SCRIPT_TIMEOUT_MS = 15 * 60_000;
+
+/**
+ * Write the 60-second script plan: c0mpute first, then OpenAI (cfg.TEXT_MODEL)
+ * when c0mpute fails and an OpenAI client is set. Images and voice stay on
+ * their vendors.
+ * @param {object} args
+ * @param {string} args.topic
+ * @param {object|null} [args.client] OpenAI client (fallback)
+ * @param {object} [args.cfg] overrides for TEXT_MODEL, VIDEO_SEC, SCENES_COUNT
+ * @param {boolean} [args.dryRun]
+ * @param {object|null} [args.c0mpute] c0mpute router; default from env, null skips c0mpute
+ */
+export async function generateScript({ topic, client = null, cfg: cfgIn = {}, dryRun = false, c0mpute }) {
+  const cfg = { ...DEFAULTS, ...cfgIn };
   if (dryRun) {
     const sections = [
       { label: "Intro/Context", sec: 10, text: `Intro on: ${topic}` },
@@ -118,19 +134,45 @@ Deliver JSON with:
 }
 Total seconds should sum to ~${cfg.VIDEO_SEC}. Keep jargon minimal.`;
 
-  const res = await client.chat.completions.create({
-    model: cfg.TEXT_MODEL,
-    messages: [
-      { role: "system", content: "Return only valid JSON. No commentary." },
-      { role: "user", content: prompt },
-    ],response_format: { type: "json_object" },
-  });
+  const system = "Return only valid JSON. No commentary.";
+  const router =
+    c0mpute === undefined ? createC0mpute({ defaultTimeoutMs: C0MPUTE_SCRIPT_TIMEOUT_MS }) : c0mpute;
 
   let data;
-  try {
-    data = JSON.parse(res.choices[0].message.content);
-  } catch {
-    throw new Error("Model did not return valid JSON.");
+  let provider;
+  if (router) {
+    try {
+      const r = await router.generateObject({
+        name: "VideoScript",
+        system,
+        user: prompt,
+        maxTokens: 2000,
+        feature: "viral-video:script",
+      });
+      data = r.object;
+      provider = r.provider;
+    } catch (err) {
+      if (!client) throw new Error(`Script generation failed on c0mpute: ${err.message}`);
+      console.warn(`c0mpute failed, falling back to OpenAI: ${err.message}`);
+    }
+  }
+
+  if (!data) {
+    if (!client) throw new Error("Missing OPENAI_API_KEY. Set environment variable or run 'viral setup'.");
+    const res = await client.chat.completions.create({
+      model: cfg.TEXT_MODEL,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: prompt },
+      ],response_format: { type: "json_object" },
+    });
+
+    try {
+      data = JSON.parse(res.choices[0].message.content);
+    } catch {
+      throw new Error("Model did not return valid JSON.");
+    }
+    provider = "openai";
   }
 
   const total = data.sections?.reduce((a, b) => a + (b.sec || 0), 0) || cfg.VIDEO_SEC;
@@ -168,6 +210,7 @@ Total seconds should sum to ~${cfg.VIDEO_SEC}. Keep jargon minimal.`;
     imagePrompts,
     ttsStyle: data.tts_style || "male, smooth, educational",
     disclaimer: data.disclaimer || "",
+    provider,
   };
 }
 
@@ -507,6 +550,7 @@ export async function run(topic, options = {}) {
     onProgress && onProgress({ current, total, message });
   };
 
+  // The script runs on c0mpute first; images and voice still need OpenAI.
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY || userCfg.OPENAI_API_KEY || "";
   if (!OPENAI_API_KEY && !dryRun) {
     throw new Error("Missing OPENAI_API_KEY. Set environment variable or run 'viral setup'.");

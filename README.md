@@ -109,9 +109,12 @@ Configuration
 Precedence: env > user config > defaults. The config loader lives in [run()](src/index.js:460) and the setup logic is in [setupCommand()](bin/viral.js:143).
 
 Environment variables
-- OPENAI_API_KEY: required unless DRY_RUN=1
+- OPENAI_API_KEY: required unless DRY_RUN=1 (images and voice; the script falls back to it)
+- C0MPUTE_API_KEY: Infernet account key. The script is written on the c0mpute peer network first; without a key it gets a free tier of 10 calls a day
+- C0MPUTE_TIMEOUT_MS: whole c0mpute script call, default 900000 (c0mpute runs at a few tokens a second)
+- C0MPUTE_DISABLED=1: write the script on OpenAI only
 - ELEVENLABS_API_KEY: optional (future TTS)
-- TEXT_MODEL (default gpt-5)
+- TEXT_MODEL (default gpt-5; the OpenAI fallback for the script)
 - IMAGE_MODEL (default gpt-image-1)
 - TTS_MODEL (default gpt-4o-mini-tts)
 - TTS_VOICE (default alloy; use luna for female)
