@@ -1,6 +1,6 @@
 {
   "name": "@profullstack/viral-video",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "CLI to generate 60s vertical video kits and optionally render MP4 using ffmpeg",
   "type": "module",
   "main": "src/index.js",
@@ -22,6 +22,7 @@
   },
   "packageManager": "pnpm@9.0.0",
   "dependencies": {
+    "@profullstack/ai-providers": "0.1.2",
     "openai": "^5.8.2"
   },
   "devDependencies": {
